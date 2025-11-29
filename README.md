@@ -4,7 +4,7 @@ An unofficial, minimal Spring Cloud Config Server packaged as a Docker image. Th
 
 ## Build
 
-The Dockerfile accepts a `JAVA_VERSION` build argument (defaults to `21`) so you can produce images for the supported LTS releases `17`, `21`, and `25`.
+The Dockerfile accepts build arguments so you can tweak both the JRE version and exposed port. `JAVA_VERSION` defaults to `21` (supported values: `17`, `21`, `25`) and `SERVER_PORT` defaults to `8888`.
 
 ```bash
 # default JRE 21
@@ -15,9 +15,12 @@ docker build --build-arg JAVA_VERSION=17 -t config-server:17 .
 
 # JRE 25
 docker build --build-arg JAVA_VERSION=25 -t config-server:25 .
+
+# expose/run on port 9090
+docker build --build-arg SERVER_PORT=9090 -t config-server:21-9090 .
 ```
 
-Under the hood a multi-stage build runs Maven with the matching Temurin JDK and copies the resulting fat jar into the corresponding Temurin Alpine JRE image, keeping things as slim as possible. During the build we also update the `java.version` property inside the Maven project so that the compiler always targets the numeric Java release (e.g. `21`). Keep the `JAVA_VERSION` argument to one of the supported major LTS releases.
+Under the hood a multi-stage build runs Maven with the matching Temurin JDK and copies the resulting fat jar into the corresponding Temurin Alpine JRE image, keeping things as slim as possible. During the build we also update the `java.version` property inside the Maven project so that the compiler always targets the numeric Java release (e.g. `21`). Keep `JAVA_VERSION` to one of the supported major LTS releases, and when overriding `SERVER_PORT` make sure the value matches the port mapping you intend to publish.
 
 ## Run
 
@@ -25,6 +28,11 @@ Under the hood a multi-stage build runs Maven with the matching Temurin JDK and 
 docker run --rm -p 8888:8888 \
   -e CONFIG_GIT_URI=https://github.com/spring-cloud-samples/config-repo \
   config-server
+
+# custom server port (must match build-time SERVER_PORT)
+docker run --rm -p 9090:9090 \
+  -e SERVER_PORT=9090 \
+  config-server:21-9090
 ```
 
 Override the environment variables below to point at your own configuration Git repository or change runtime behavior.

@@ -2,6 +2,7 @@
 
 ARG JAVA_VERSION=21
 ARG MAVEN_VERSION=3.9.11
+ARG SERVER_PORT=8888
 
 FROM maven:${MAVEN_VERSION}-eclipse-temurin-${JAVA_VERSION} AS build
 ARG JAVA_VERSION
@@ -21,6 +22,7 @@ RUN mvn package -DskipTests
 
 FROM eclipse-temurin:${JAVA_VERSION}-jre AS runtime
 ARG JAVA_VERSION
+ARG SERVER_PORT
 WORKDIR /opt/config-server
 
 # Create an unprivileged user
@@ -29,11 +31,12 @@ RUN groupadd --system config \
 USER config
 
 ENV JAVA_OPTS=""
+ENV SERVER_PORT=${SERVER_PORT}
 ENV SPRING_PROFILES_ACTIVE=git
 ENV CONFIG_GIT_URI=https://github.com/spring-cloud-samples/config-repo
 ENV CONFIG_GIT_DEFAULT_LABEL=main
 
 COPY --from=build /workspace/app/target/config-server.jar app.jar
 
-EXPOSE 8888
+EXPOSE ${SERVER_PORT}
 ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar /opt/config-server/app.jar"]
