@@ -2,7 +2,6 @@
 
 ARG JAVA_VERSION=21
 ARG MAVEN_VERSION=3.9.11
-ARG SERVER_PORT=8888
 
 FROM maven:${MAVEN_VERSION}-eclipse-temurin-${JAVA_VERSION} AS build
 ARG JAVA_VERSION
@@ -50,11 +49,10 @@ RUN chmod +x /opt/config-server/entrypoint.sh
 FROM busybox:1.36.1-musl AS shell
 
 FROM scratch AS runtime
-ARG SERVER_PORT
 
 ENV JAVA_HOME=/opt/jre
 ENV JAVA_OPTS=""
-ENV SERVER_PORT=${SERVER_PORT}
+ENV SERVER_PORT=8888
 ENV SPRING_PROFILES_ACTIVE=git
 ENV CONFIG_GIT_URI=https://github.com/spring-cloud-samples/config-repo
 ENV CONFIG_GIT_DEFAULT_LABEL=main
@@ -72,5 +70,4 @@ COPY --from=build /workspace/app/target/config-server.jar /opt/config-server/app
 
 USER config
 
-EXPOSE ${SERVER_PORT}
 ENTRYPOINT ["/opt/config-server/entrypoint.sh"]

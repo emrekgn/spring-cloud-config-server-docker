@@ -4,7 +4,7 @@ An unofficial, minimal Spring Cloud Config Server packaged as a Docker image. Th
 
 ## Build
 
-The Dockerfile accepts build arguments so you can tweak both the JRE version and exposed port. `JAVA_VERSION` defaults to `21` (supported values: `17`, `21`, `25`) and `SERVER_PORT` defaults to `8888`.
+The Dockerfile accepts build arguments so you can tweak the Temurin JRE version used to build and package the server. `JAVA_VERSION` defaults to `21` (supported values: `17`, `21`, `25`).
 
 ```bash
 # default JRE 21
@@ -15,9 +15,6 @@ docker build --build-arg JAVA_VERSION=17 -t config-server:17 .
 
 # JRE 25
 docker build --build-arg JAVA_VERSION=25 -t config-server:25 .
-
-# expose/run on port 9090
-docker build --build-arg SERVER_PORT=9090 -t config-server:21-9090 .
 ```
 
 Under the hood a multi-stage build runs Maven with the matching Temurin JDK, derives the required Java modules via `jdeps`, and then builds a trimmed runtime with `jlink`. The result plus a tiny BusyBox shell are copied into a `scratch` final image, so the shipped container only holds the custom JRE and the Spring Boot jar. During the build we also update the `java.version` property inside the Maven project so that the compiler always targets the numeric Java release (e.g. `21`). Keep `JAVA_VERSION` to one of the supported major LTS releases, and when overriding `SERVER_PORT` make sure the value matches the port mapping you intend to publish.
@@ -29,10 +26,12 @@ docker run --rm -p 8888:8888 \
   -e CONFIG_GIT_URI=https://github.com/spring-cloud-samples/config-repo \
   config-server
 
-# custom server port (must match build-time SERVER_PORT)
+# custom server port (override at runtime, no rebuild required)
 docker run --rm -p 9090:9090 \
   -e SERVER_PORT=9090 \
-  config-server:21-9090
+  config-server
+
+The container defaults to port `8888`, but overriding `SERVER_PORT` at runtime is enough to listen on any other port—no rebuild or custom image tag required (just remember to update your `-p host:container` mapping).
 ```
 
 ## Publishing tips
