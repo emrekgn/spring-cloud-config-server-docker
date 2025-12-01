@@ -1,6 +1,6 @@
 # spring-cloud-config-server-docker
 
-An unofficial, minimal Spring Cloud Config Server packaged as a Docker image. The image is built from a tiny Spring Boot application plus the official Temurin Alpine JRE, so you get sensible defaults (port `8888`, Git backend) with the smallest possible footprint.
+An unofficial, minimal Spring Cloud Config Server packaged as a Docker image. The image is built from a tiny Spring Boot application and a custom `jlink` runtime distilled from Temurin, so you get sensible defaults (port `8888`, Git backend) with the smallest possible footprint.
 
 ## Build
 
@@ -20,7 +20,7 @@ docker build --build-arg JAVA_VERSION=25 -t config-server:25 .
 docker build --build-arg SERVER_PORT=9090 -t config-server:21-9090 .
 ```
 
-Under the hood a multi-stage build runs Maven with the matching Temurin JDK and copies the resulting fat jar into the corresponding Temurin Alpine JRE image, keeping things as slim as possible. During the build we also update the `java.version` property inside the Maven project so that the compiler always targets the numeric Java release (e.g. `21`). Keep `JAVA_VERSION` to one of the supported major LTS releases, and when overriding `SERVER_PORT` make sure the value matches the port mapping you intend to publish.
+Under the hood a multi-stage build runs Maven with the matching Temurin JDK, derives the required Java modules via `jdeps`, and then builds a trimmed runtime with `jlink`. The result plus a tiny BusyBox shell are copied into a `scratch` final image, so the shipped container only holds the custom JRE and the Spring Boot jar. During the build we also update the `java.version` property inside the Maven project so that the compiler always targets the numeric Java release (e.g. `21`). Keep `JAVA_VERSION` to one of the supported major LTS releases, and when overriding `SERVER_PORT` make sure the value matches the port mapping you intend to publish.
 
 ## Run
 
@@ -34,6 +34,21 @@ docker run --rm -p 9090:9090 \
   -e SERVER_PORT=9090 \
   config-server:21-9090
 ```
+
+## Publishing tips
+
+When pushing to a registry and you only care about transfer size (not runtime footprint), build the image with BuildKit compression disabled plus SBOM/provenance metadata skipped:
+
+```bash
+docker buildx build \
+  --sbom=false \
+  --provenance=false \
+  --no-cache \
+  --compression=gzip \
+  -t your-registry/config-server:21 .
+```
+
+Using `--compression=zstd` typically yields similar savings (roughly 5–15 MB per image) depending on registry support.
 
 Override the environment variables below to point at your own configuration Git repository or change runtime behavior.
 
