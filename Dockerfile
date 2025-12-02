@@ -42,7 +42,7 @@ RUN mkdir -p /opt/config-server \
  && cat <<'EOF' > /opt/config-server/entrypoint.sh
 #!/bin/sh
 set -e
-exec /opt/jre/bin/java $JAVA_OPTS -jar /opt/config-server/app.jar
+exec /opt/jre/bin/java -Djava.security.egd=file:/dev/./urandom $JAVA_OPTS -jar /opt/config-server/app.jar
 EOF
 RUN chmod +x /opt/config-server/entrypoint.sh
 
