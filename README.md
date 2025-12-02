@@ -1,5 +1,10 @@
 # spring-cloud-config-server-docker
 
+[![Docker Version](https://img.shields.io/docker/v/emrekgn/spring-cloud-config-server/latest)](https://hub.docker.com/r/emrekgn/spring-cloud-config-server)
+[![Image Size](https://img.shields.io/docker/image-size/emrekgn/spring-cloud-config-server/latest)](https://hub.docker.com/r/emrekgn/spring-cloud-config-server)
+[![License](https://img.shields.io/github/license/emrekgn/spring-cloud-config-server-docker)](https://github.com/emrekgn/spring-cloud-config-server-docker/blob/main/LICENSE)
+[![Build Status](https://github.com/emrekgn/spring-cloud-config-server-docker/actions/workflows/docker-image.yml/badge.svg)](https://github.com/emrekgn/spring-cloud-config-server-docker/actions/workflows/docker-image.yml)
+
 An unofficial, minimal Spring Cloud Config Server packaged as a Docker image. The image is built from a tiny Spring Boot application and a custom `jlink` runtime distilled from Temurin, so you get sensible defaults (port `8888`, Git backend) with the smallest possible footprint.
 
 ## Build
