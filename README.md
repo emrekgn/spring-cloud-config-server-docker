@@ -7,6 +7,37 @@
 
 An unofficial, minimal Spring Cloud Config Server packaged as a Docker image. The image is built from a tiny Spring Boot application and a custom `jlink` runtime distilled from Temurin, so you get sensible defaults (port `8888`, Git backend) with the smallest possible footprint.
 
+## Quickstart
+
+```bash
+# Run with defaults (Git backend pointing to the sample repo)
+docker run --rm -p 8888:8888 emrekgn/spring-cloud-config-server:latest
+
+# Override Git repository and branch/tag
+docker run --rm -p 8888:8888 \
+  -e CONFIG_GIT_URI=https://github.com/your-org/your-configs \
+  -e CONFIG_GIT_DEFAULT_LABEL=prod \
+  emrekgn/spring-cloud-config-server:latest
+
+# Change server port and activate extra profiles
+docker run --rm -p 9090:9090 \
+  -e SERVER_PORT=9090 \
+  -e SPRING_PROFILES_ACTIVE=native,git \
+  emrekgn/spring-cloud-config-server:latest
+
+# Mount an external application.yml into the container
+docker run --rm -p 8888:8888 \
+  -v "$(pwd)/config/application.yml:/opt/config-server/config/application.yml:ro" \
+  emrekgn/spring-cloud-config-server:latest
+
+# Use native (filesystem) backend instead of Git
+docker run --rm -p 8888:8888 \
+  -e SPRING_PROFILES_ACTIVE=native \
+  -e SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS=file:/opt/config-server/native \
+  -v "$(pwd)/native-config:/opt/config-server/native:ro" \
+  emrekgn/spring-cloud-config-server:latest
+```
+
 ## Build
 
 The Dockerfile accepts build arguments so you can tweak the Temurin JRE version used to build and package the server. `JAVA_VERSION` defaults to `21` (supported values: `17`, `21`, `25`).
