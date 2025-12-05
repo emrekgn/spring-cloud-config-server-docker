@@ -48,6 +48,62 @@ jobs:
           key: ${{ runner.os }}-buildx-${{ github.sha }}
           restore-keys: ${{ runner.os }}-buildx-
 
+      - name: Build test image
+        run: |
+          docker build \
+            --build-arg JAVA_VERSION=${{ env.JAVA_VERSION }} \
+            --build-arg MAVEN_VERSION=${{ env.MAVEN_VERSION }} \
+            -t config-server:ci-test .
+
+      - name: Smoke test default Git backend
+        run: |
+          set -euo pipefail
+          container_name=config-server-smoke-git
+          cleanup() {
+            docker logs "$container_name" || true
+            docker rm -f "$container_name" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+          docker run -d --rm --name "$container_name" -p 8888:8888 config-server:ci-test
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://localhost:8888/actuator/health | grep -q '"status":"UP"'; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Config Server (Git backend) did not become healthy in time" >&2
+          exit 1
+
+      - name: Smoke test native filesystem backend
+        run: |
+          set -euo pipefail
+          native_dir="$(mktemp -d)"
+          cat <<'EOF' > "$native_dir/application.yml"
+            example:
+              message: native-backend
+          EOF
+
+          container_name=config-server-smoke-native
+          cleanup() {
+            docker logs "$container_name" || true
+            docker rm -f "$container_name" >/dev/null 2>&1 || true
+            rm -rf "$native_dir"
+          }
+          trap cleanup EXIT
+          docker run -d --rm --name "$container_name" -p 8888:8888 \
+            -e SPRING_PROFILES_ACTIVE=native \
+            -e SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS=file:/opt/config-server/native \
+            -v "$native_dir":/opt/config-server/native:ro \
+            config-server:ci-test
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://localhost:8888/actuator/health | grep -q '"status":"UP"'; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Config Server (native backend) did not become healthy in time" >&2
+          exit 1
+
       - name: Extract metadata
         id: meta
         run: |
