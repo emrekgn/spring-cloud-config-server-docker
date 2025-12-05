@@ -2,22 +2,35 @@
 
 ARG JAVA_VERSION=21
 ARG MAVEN_VERSION=3.9.11
+ARG SPRING_BOOT_VERSION=4.0.0
+ARG SPRING_CLOUD_VERSION=2025.1.0
 
 FROM maven:${MAVEN_VERSION}-eclipse-temurin-${JAVA_VERSION} AS build
 ARG JAVA_VERSION
+ARG SPRING_BOOT_VERSION
+ARG SPRING_CLOUD_VERSION
 WORKDIR /workspace/app
 
 # Resolve dependencies first to leverage Docker layer caching
 COPY pom.xml .
-RUN mvn versions:set-property \
+RUN mvn -B -ntp versions:update-parent \
+        -DparentVersion="[${SPRING_BOOT_VERSION}]" \
+        -DgenerateBackupPoms=false \
+        -DallowSnapshots=false \
+        -DforceVersion=true
+RUN mvn -B -ntp versions:set-property \
+        -Dproperty=spring-cloud.version \
+        -DnewVersion=${SPRING_CLOUD_VERSION} \
+        -DgenerateBackupPoms=false
+RUN mvn -B -ntp versions:set-property \
         -Dproperty=java.version \
         -DnewVersion=${JAVA_VERSION} \
         -DgenerateBackupPoms=false
-RUN mvn dependency:go-offline
+RUN mvn -B -ntp dependency:go-offline
 
 # Build the Spring Cloud Config Server fat jar
 COPY src ./src
-RUN mvn package -DskipTests
+RUN mvn -B -ntp package -DskipTests
 
 FROM eclipse-temurin:${JAVA_VERSION} AS jre-build
 ARG JAVA_VERSION

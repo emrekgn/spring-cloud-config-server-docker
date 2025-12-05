@@ -11,32 +11,34 @@ An unofficial, minimal Spring Cloud Config Server packaged as a Docker image. Th
 
 ```bash
 # Run with defaults (Git backend pointing to the sample repo)
-docker run --rm -p 8888:8888 emrekgn/spring-cloud-config-server:latest
+docker run --rm -p 8888:8888 emrekgn/spring-cloud-config-server:java21-boot4.0.0
 
 # Override Git repository and branch/tag
 docker run --rm -p 8888:8888 \
   -e CONFIG_GIT_URI=https://github.com/your-org/your-configs \
   -e CONFIG_GIT_DEFAULT_LABEL=prod \
-  emrekgn/spring-cloud-config-server:latest
+  emrekgn/spring-cloud-config-server:java21-boot4.0.0
 
 # Change server port and activate extra profiles
 docker run --rm -p 9090:9090 \
   -e SERVER_PORT=9090 \
   -e SPRING_PROFILES_ACTIVE=native,git \
-  emrekgn/spring-cloud-config-server:latest
+  emrekgn/spring-cloud-config-server:java21-boot4.0.0
 
 # Mount an external application.yml into the container
 docker run --rm -p 8888:8888 \
   -v "$(pwd)/config/application.yml:/opt/config-server/config/application.yml:ro" \
-  emrekgn/spring-cloud-config-server:latest
+  emrekgn/spring-cloud-config-server:java21-boot4.0.0
 
 # Use native (filesystem) backend instead of Git
 docker run --rm -p 8888:8888 \
   -e SPRING_PROFILES_ACTIVE=native \
   -e SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS=file:/opt/config-server/native \
   -v "$(pwd)/native-config:/opt/config-server/native:ro" \
-  emrekgn/spring-cloud-config-server:latest
+  emrekgn/spring-cloud-config-server:java17-boot3.5.8
 ```
+
+Docker Hub tags follow the pattern `java<JAVA_VERSION>-boot<SPRING_BOOT_VERSION>` (for example `java21-boot4.0.0` or `java17-boot3.5.8`). Choose the combo that matches the runtime you need; each one is built, tested, smoke-checked, and pushed by the workflow described below.
 
 ## Build
 

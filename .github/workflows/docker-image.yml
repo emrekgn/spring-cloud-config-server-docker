@@ -7,17 +7,38 @@ on:
     branches: [main]
 
 env:
-  JAVA_VERSION: "21"
   MAVEN_VERSION: "3.9.11"
   REGISTRY_IMAGE: ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKERHUB_PROJECT_NAME }}
 
 jobs:
   build-test-push:
-    name: Build, Test, and Publish
+    name: Build/Test/Publish (Java ${{ matrix.java-version }}, Boot ${{ matrix.spring-boot-version }})
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - java-version: "17"
+            spring-boot-version: "4.0.0"
+            spring-cloud-version: "2025.1.0"
+          - java-version: "21"
+            spring-boot-version: "4.0.0"
+            spring-cloud-version: "2025.1.0"
+          - java-version: "25"
+            spring-boot-version: "4.0.0"
+            spring-cloud-version: "2025.1.0"
+          - java-version: "17"
+            spring-boot-version: "3.5.8"
+            spring-cloud-version: "2025.0.0"
+          - java-version: "21"
+            spring-boot-version: "3.5.8"
+            spring-cloud-version: "2025.0.0"
+          - java-version: "25"
+            spring-boot-version: "3.5.8"
+            spring-cloud-version: "2025.0.0"
 
     steps:
       - name: Checkout source code
@@ -29,8 +50,24 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: ${{ env.JAVA_VERSION }}
+          java-version: ${{ matrix.java-version }}
           cache: maven
+
+      - name: Align Maven versions for matrix
+        run: |
+          mvn -B -ntp versions:update-parent \
+            -DparentVersion="[${{ matrix.spring-boot-version }}]" \
+            -DgenerateBackupPoms=false \
+            -DallowSnapshots=false \
+            -DforceVersion=true
+          mvn -B -ntp versions:set-property \
+            -Dproperty=spring-cloud.version \
+            -DnewVersion=${{ matrix.spring-cloud-version }} \
+            -DgenerateBackupPoms=false
+          mvn -B -ntp versions:set-property \
+            -Dproperty=java.version \
+            -DnewVersion=${{ matrix.java-version }} \
+            -DgenerateBackupPoms=false
 
       - name: Run Maven tests
         run: mvn -B -ntp verify
@@ -45,14 +82,18 @@ jobs:
         uses: actions/cache@v4
         with:
           path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
-          restore-keys: ${{ runner.os }}-buildx-
+          key: ${{ runner.os }}-buildx-java${{ matrix.java-version }}-boot${{ matrix.spring-boot-version }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-java${{ matrix.java-version }}-boot${{ matrix.spring-boot-version }}-
+            ${{ runner.os }}-buildx-
 
       - name: Build test image
         run: |
           docker build \
-            --build-arg JAVA_VERSION=${{ env.JAVA_VERSION }} \
+            --build-arg JAVA_VERSION=${{ matrix.java-version }} \
             --build-arg MAVEN_VERSION=${{ env.MAVEN_VERSION }} \
+            --build-arg SPRING_BOOT_VERSION=${{ matrix.spring-boot-version }} \
+            --build-arg SPRING_CLOUD_VERSION=${{ matrix.spring-cloud-version }} \
             -t config-server:ci-test .
 
       - name: Smoke test default Git backend
@@ -78,7 +119,7 @@ jobs:
         run: |
           set -euo pipefail
           native_dir="$(mktemp -d)"
-          cat <<'EOF' > "$native_dir/application.yml"
+          cat <<'EOF' > "$native_dir"/application.yml
             example:
               message: native-backend
           EOF
@@ -124,11 +165,13 @@ jobs:
           push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
           platforms: linux/amd64,linux/arm64
           tags: |
-            ${{ env.REGISTRY_IMAGE }}:latest
-            ${{ env.REGISTRY_IMAGE }}:${{ steps.meta.outputs.short_sha }}
+            ${{ env.REGISTRY_IMAGE }}:java${{ matrix.java-version }}-boot${{ matrix.spring-boot-version }}
+            ${{ env.REGISTRY_IMAGE }}:${{ steps.meta.outputs.short_sha }}-java${{ matrix.java-version }}-boot${{ matrix.spring-boot-version }}
           build-args: |
-            JAVA_VERSION=${{ env.JAVA_VERSION }}
+            JAVA_VERSION=${{ matrix.java-version }}
             MAVEN_VERSION=${{ env.MAVEN_VERSION }}
+            SPRING_BOOT_VERSION=${{ matrix.spring-boot-version }}
+            SPRING_CLOUD_VERSION=${{ matrix.spring-cloud-version }}
           labels: |
             org.opencontainers.image.source=${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
