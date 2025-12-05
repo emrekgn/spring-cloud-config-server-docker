@@ -58,6 +58,7 @@ jobs:
           mvn -B -ntp versions:update-parent \
             -DparentVersion="[${{ matrix.spring-boot-version }}]" \
             -DgenerateBackupPoms=false \
+            -DskipResolution=true \
             -DallowSnapshots=false \
             -DforceVersion=true
           mvn -B -ntp versions:set-property \

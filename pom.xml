@@ -10,7 +10,7 @@
         <relativePath/>
     </parent>
 
-    <groupId>dev.emrea</groupId>
+    <groupId>dev.spring-cloud</groupId>
     <artifactId>spring-cloud-config-server-docker</artifactId>
     <version>0.1.0</version>
     <name>spring-cloud-config-server-docker</name>
